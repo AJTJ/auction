@@ -13,12 +13,25 @@ describe("auction", () => {
   const auction = anchor.web3.Keypair.generate();
   const owner = anchor.web3.Keypair.generate();
   const purchaser = anchor.web3.Keypair.generate();
+  const purchaserWithoutFunds = anchor.web3.Keypair.generate();
+
+  const price = 1000000000;
+  const insufficient_amount = 100000000;
+  const more_than_enough = 100000000000;
 
   // fill the account with lamps
   before(async () => {
     const signature = await program.provider.connection.requestAirdrop(
+      purchaserWithoutFunds.publicKey,
+      insufficient_amount
+    );
+    await program.provider.connection.confirmTransaction(signature);
+  });
+  // fill the account with lamps
+  before(async () => {
+    const signature = await program.provider.connection.requestAirdrop(
       owner.publicKey,
-      1000000000000
+      more_than_enough
     );
     await program.provider.connection.confirmTransaction(signature);
   });
@@ -27,7 +40,7 @@ describe("auction", () => {
   before(async () => {
     const signature = await program.provider.connection.requestAirdrop(
       purchaser.publicKey,
-      1000000000000
+      more_than_enough
     );
     await program.provider.connection.confirmTransaction(signature);
   });
@@ -42,7 +55,7 @@ describe("auction", () => {
     // January first, 2022
     let end_time = new anchor.BN(1641094445);
     // start price is in LAMPORTS
-    let start_price_lamps = new anchor.BN(1000);
+    let start_price_lamps = new anchor.BN(price);
     // Optional reserve_price
     let reserve_price = null;
 
@@ -67,8 +80,53 @@ describe("auction", () => {
 
     console.log("Transaction: ", tx);
   });
+  it("An account without enough funds cannot purchase the item", async () => {
+    const [mint, mintBump] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("mint")],
+      program.programId
+    );
+
+    let balance_before = await provider.connection.getBalance(
+      purchaserWithoutFunds.publicKey
+    );
+    const account_before = await program.account.auction.fetch(
+      auction.publicKey
+    );
+    assert.ok(account_before.isEnded === false);
+
+    let tx = await program.rpc.claim({
+      accounts: {
+        auction: auction.publicKey,
+        authority: owner.publicKey,
+        systemProgram: SystemProgram.programId,
+        mint: mint,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        purchaser: purchaserWithoutFunds.publicKey,
+      },
+      signers: [owner, purchaserWithoutFunds],
+    });
+
+    let balance_after = await provider.connection.getBalance(
+      purchaserWithoutFunds.publicKey
+    );
+    const account_after = await program.account.auction.fetch(
+      auction.publicKey
+    );
+    assert.ok(account_after.isEnded === false);
+
+    console.log(
+      "balance before: ",
+      balance_before,
+      "- balance after: ",
+      balance_after
+    );
+  });
 
   it("The price can be paid, ending the auction", async () => {
+    const [mint, mintBump] = await anchor.web3.PublicKey.findProgramAddress(
+      [Buffer.from("mint")],
+      program.programId
+    );
     const account_before = await program.account.auction.fetch(
       auction.publicKey
     );
@@ -81,11 +139,13 @@ describe("auction", () => {
     let tx = await program.rpc.claim({
       accounts: {
         auction: auction.publicKey,
-        authority: providerWallet.publicKey,
-        purchaser: purchaser.publicKey,
+        authority: owner.publicKey,
         systemProgram: SystemProgram.programId,
+        mint: mint,
+        tokenProgram: spl.TOKEN_PROGRAM_ID,
+        purchaser: purchaser.publicKey,
       },
-      signers: [purchaser],
+      signers: [owner, purchaser],
     });
 
     let balance_after = await provider.connection.getBalance(
@@ -96,6 +156,12 @@ describe("auction", () => {
     );
     assert.ok(account_after.isEnded === true);
 
+    console.log(
+      "balance before: ",
+      balance_before,
+      "- balance after: ",
+      balance_after
+    );
     assert.ok(balance_before > balance_after);
 
     console.log("Transaction: ", tx);
