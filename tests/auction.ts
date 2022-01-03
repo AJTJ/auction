@@ -130,6 +130,14 @@ describe("auction", () => {
     );
     assert.ok(account_before.isEnded === false);
 
+    let ourAssociatedTokens = await spl.Token.getAssociatedTokenAddress(
+      spl.ASSOCIATED_TOKEN_PROGRAM_ID,
+      spl.TOKEN_PROGRAM_ID,
+      mint,
+      owner.publicKey
+      // program.provider.wallet.publicKey
+    );
+
     let tx = await program.rpc.claim({
       accounts: {
         auction: auction.publicKey,
@@ -138,6 +146,7 @@ describe("auction", () => {
         mint: mint,
         tokenProgram: spl.TOKEN_PROGRAM_ID,
         purchaser: purchaserWithoutFunds.publicKey,
+        destination: ourAssociatedTokens,
       },
       signers: [owner, purchaserWithoutFunds],
     });
@@ -175,6 +184,14 @@ describe("auction", () => {
       purchaser.publicKey
     );
 
+    let ourAssociatedTokens = await spl.Token.getAssociatedTokenAddress(
+      spl.ASSOCIATED_TOKEN_PROGRAM_ID,
+      spl.TOKEN_PROGRAM_ID,
+      mint,
+      owner.publicKey
+      // program.provider.wallet.publicKey
+    );
+
     let tx = await program.rpc.claim({
       accounts: {
         auction: auction.publicKey,
@@ -183,6 +200,7 @@ describe("auction", () => {
         mint: mint,
         tokenProgram: spl.TOKEN_PROGRAM_ID,
         purchaser: purchaser.publicKey,
+        destination: ourAssociatedTokens,
       },
       signers: [owner, purchaser],
     });

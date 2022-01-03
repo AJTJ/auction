@@ -88,7 +88,6 @@ pub mod auction {
         let auction = &mut ctx.accounts.auction;
         let authority = &mut ctx.accounts.authority;
         let purchaser = &mut ctx.accounts.purchaser;
-        let mint = &mut ctx.accounts.mint;
 
         if auction.is_ended {
             msg!("auction is ended");
@@ -129,7 +128,7 @@ pub mod auction {
                         ],
                     )?;
 
-                    // in this case we are transferring authority over the mint account
+                    // transferring authority of the mint account
                     // anchor_spl::token::set_authority(ctx, authority_type, new_authority)
 
                     let cpi_accounts = anchor_spl::token::SetAuthority {
@@ -142,6 +141,21 @@ pub mod auction {
                     anchor_spl::token::set_authority(
                         cpi_ctx,
                         spl_token::instruction::AuthorityType::MintTokens,
+                        Some(*purchaser.to_account_info().key),
+                    )?;
+
+                    // transferring authority of the tokens
+
+                    let cpi_accounts = anchor_spl::token::SetAuthority {
+                        account_or_mint: ctx.accounts.destination.to_account_info(),
+                        current_authority: authority.to_account_info(),
+                    };
+                    let cpi_program = ctx.accounts.token_program.to_account_info();
+                    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+
+                    anchor_spl::token::set_authority(
+                        cpi_ctx,
+                        spl_token::instruction::AuthorityType::AccountOwner,
                         Some(*purchaser.to_account_info().key),
                     )?;
 
@@ -194,6 +208,8 @@ pub struct Claim<'info> {
     #[account(mut)]
     pub purchaser: Signer<'info>,
     pub system_program: Program<'info, System>,
+    #[account(mut)]
+    pub destination: Account<'info, TokenAccount>,
 }
 
 #[account]
