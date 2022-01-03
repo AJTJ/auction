@@ -71,7 +71,7 @@ pub mod auction {
                 anchor_spl::token::MintTo {
                     mint: ctx.accounts.mint.to_account_info(),
                     to: ctx.accounts.destination.to_account_info(),
-                    authority: ctx.accounts.mint.to_account_info(),
+                    authority: ctx.accounts.authority.to_account_info(),
                 },
                 &[&[&[], &[mint_bump]]],
             ),
@@ -172,7 +172,7 @@ pub struct Initialize<'info> {
         seeds = [],
         bump = mint_bump,
         mint::decimals = 0,
-        mint::authority = mint,
+        mint::authority = authority,
     )]
     pub mint: Account<'info, Mint>,
 
