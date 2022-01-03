@@ -129,8 +129,7 @@ pub mod auction {
                         ],
                     )?;
 
-                    // transfer of any authority of whatever is purchased occurs here
-                    // in this case we are transferring Minting authority
+                    // in this case we are transferring authority over the mint account
                     // anchor_spl::token::set_authority(ctx, authority_type, new_authority)
 
                     let cpi_accounts = anchor_spl::token::SetAuthority {
