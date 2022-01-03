@@ -67,6 +67,16 @@ describe("auction", () => {
     // Optional reserve_price
     let reserve_price = null;
 
+    console.log("DAKEYS", {
+      auction: auction.publicKey,
+      owner: owner.publicKey,
+      program: program.provider.wallet.publicKey,
+      mint: mint,
+      tokenProgramID: spl.TOKEN_PROGRAM_ID,
+      associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
+      associatedToken: ourAssociatedTokens,
+    });
+
     let tx = await program.rpc.initialize(
       mintBump,
       start_time,
@@ -76,13 +86,14 @@ describe("auction", () => {
       {
         accounts: {
           auction: auction.publicKey,
-          tokenAccount: ourAssociatedTokens,
-          associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
           authority: owner.publicKey,
           systemProgram: SystemProgram.programId,
+          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
           mint: mint,
           tokenProgram: spl.TOKEN_PROGRAM_ID,
-          rent: anchor.web3.SYSVAR_RENT_PUBKEY,
+          // token things
+          // tokenDestination: ourAssociatedTokens,
+          // associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
         },
         signers: [owner, auction],
       }

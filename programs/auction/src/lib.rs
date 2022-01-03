@@ -65,18 +65,18 @@ pub mod auction {
         auction.y_intercept = y_intercept;
 
         // minting 100 tokens to be owned by the account authority
-        anchor_spl::token::mint_to(
-            CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info(),
-                anchor_spl::token::MintTo {
-                    mint: ctx.accounts.mint.to_account_info(),
-                    to: ctx.accounts.token_account.to_account_info(),
-                    authority: ctx.accounts.mint.to_account_info(),
-                },
-                &[&[&[], &[mint_bump]]],
-            ),
-            100,
-        )?;
+        // anchor_spl::token::mint_to(
+        //     CpiContext::new_with_signer(
+        //         ctx.accounts.token_program.to_account_info(),
+        //         anchor_spl::token::MintTo {
+        //             mint: ctx.accounts.mint.to_account_info(),
+        //             to: ctx.accounts.token_destination.to_account_info(),
+        //             authority: ctx.accounts.mint.to_account_info(),
+        //         },
+        //         &[&[&[], &[mint_bump]]],
+        //     ),
+        //     100,
+        // )?;
 
         Ok(())
     }
@@ -165,18 +165,18 @@ pub struct Initialize<'info> {
     #[account(
         init,
         payer = authority,
-        mint::decimals = 0,
-        mint::authority = authority,
         seeds = [b"mint".as_ref()],
         bump = mint_bump,
+        mint::decimals = 0,
+        mint::authority = authority,
     )]
     pub mint: Account<'info, Mint>,
-    pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
-
-    #[account(init_if_needed, payer = authority, associated_token::mint = mint, associated_token::authority = authority)]
-    pub token_account: Account<'info, TokenAccount>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    //token things
+    // #[account(init_if_needed, payer = authority, associated_token::mint = mint, associated_token::authority = authority)]
+    // pub token_destination: Account<'info, TokenAccount>,
+    // pub associated_token_program: Program<'info, AssociatedToken>,
 }
 #[derive(Accounts)]
 pub struct Claim<'info> {
