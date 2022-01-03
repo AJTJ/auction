@@ -1,7 +1,9 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program;
-use anchor_spl::token::{Mint, Token /* TokenAccount */};
-// associated_token::AssociatedToken
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{Mint, Token, TokenAccount},
+};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -39,7 +41,7 @@ pub mod auction {
     use super::*;
     pub fn initialize(
         ctx: Context<Initialize>,
-        _mint_bump: u8,
+        mint_bump: u8,
         // auction values
         start_time: i64,
         end_time: i64,
@@ -61,6 +63,21 @@ pub mod auction {
         auction.slope_num = num;
         auction.slope_den = den;
         auction.y_intercept = y_intercept;
+
+        // minting 100 tokens to be owned by the account authority
+        anchor_spl::token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::MintTo {
+                    mint: ctx.accounts.mint.to_account_info(),
+                    to: ctx.accounts.token_account.to_account_info(),
+                    authority: ctx.accounts.mint.to_account_info(),
+                },
+                &[&[&[], &[mint_bump]]],
+            ),
+            100,
+        )?;
+
         Ok(())
     }
 
@@ -156,6 +173,10 @@ pub struct Initialize<'info> {
     pub mint: Account<'info, Mint>,
     pub token_program: Program<'info, Token>,
     pub rent: Sysvar<'info, Rent>,
+
+    #[account(init_if_needed, payer = authority, associated_token::mint = mint, associated_token::authority = authority)]
+    pub token_account: Account<'info, TokenAccount>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 #[derive(Accounts)]
 pub struct Claim<'info> {

@@ -15,11 +15,11 @@ describe("auction", () => {
   const purchaser = anchor.web3.Keypair.generate();
   const purchaserWithoutFunds = anchor.web3.Keypair.generate();
 
-  const price = 1000000000;
-  const insufficient_amount = 100000000;
+  const price = 9999999;
+  const insufficient_amount = 1000000;
   const more_than_enough = 100000000000;
 
-  // fill the account with lamps
+  // fill the purchaserWithoutFunds with an insufficient amount
   before(async () => {
     const signature = await program.provider.connection.requestAirdrop(
       purchaserWithoutFunds.publicKey,
@@ -27,7 +27,7 @@ describe("auction", () => {
     );
     await program.provider.connection.confirmTransaction(signature);
   });
-  // fill the account with lamps
+  // fill the owner with enough funds to pay for the process
   before(async () => {
     const signature = await program.provider.connection.requestAirdrop(
       owner.publicKey,
@@ -36,7 +36,7 @@ describe("auction", () => {
     await program.provider.connection.confirmTransaction(signature);
   });
 
-  // fill the account with lamps
+  // fill the purchaser accound with more than enough funds
   before(async () => {
     const signature = await program.provider.connection.requestAirdrop(
       purchaser.publicKey,
@@ -50,10 +50,18 @@ describe("auction", () => {
       [Buffer.from("mint")],
       program.programId
     );
+
+    let ourAssociatedTokens = await spl.Token.getAssociatedTokenAddress(
+      spl.ASSOCIATED_TOKEN_PROGRAM_ID,
+      spl.TOKEN_PROGRAM_ID,
+      mint,
+      program.provider.wallet.publicKey
+    );
+
     // Dec 12th, 2021
     let start_time = new anchor.BN(1639341245);
-    // January first, 2022
-    let end_time = new anchor.BN(1641094445);
+    // June 3rd, 2022
+    let end_time = new anchor.BN(1654243024);
     // start price is in LAMPORTS
     let start_price_lamps = new anchor.BN(price);
     // Optional reserve_price
@@ -68,6 +76,8 @@ describe("auction", () => {
       {
         accounts: {
           auction: auction.publicKey,
+          tokenAccount: ourAssociatedTokens,
+          associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
           authority: owner.publicKey,
           systemProgram: SystemProgram.programId,
           mint: mint,
@@ -80,6 +90,20 @@ describe("auction", () => {
 
     console.log("Transaction: ", tx);
   });
+
+  it("purchaserWithoutFunds does not have enough funds and the purchaser has more than enough", async () => {
+    let noFundsBalance = await provider.connection.getBalance(
+      purchaserWithoutFunds.publicKey
+    );
+
+    let purchaseBalance = await provider.connection.getBalance(
+      purchaser.publicKey
+    );
+
+    assert.ok(price > noFundsBalance);
+    assert.ok(price < purchaseBalance);
+  });
+
   it("An account without enough funds cannot purchase the item", async () => {
     const [mint, mintBump] = await anchor.web3.PublicKey.findProgramAddress(
       [Buffer.from("mint")],
@@ -112,12 +136,15 @@ describe("auction", () => {
     const account_after = await program.account.auction.fetch(
       auction.publicKey
     );
+
+    console.log("account after insufficient purchase:", { account_after });
+
     assert.ok(account_after.isEnded === false);
 
     console.log(
-      "balance before: ",
+      "NOT ENOUGH FUNDS balance before: ",
       balance_before,
-      "- balance after: ",
+      "- NOT ENOUGH FUNDS balance after: ",
       balance_after
     );
   });
@@ -154,12 +181,15 @@ describe("auction", () => {
     const account_after = await program.account.auction.fetch(
       auction.publicKey
     );
+
+    console.log("account after transation", { account_after });
+
     assert.ok(account_after.isEnded === true);
 
     console.log(
-      "balance before: ",
+      "ENOUGH FUNDS balance before: ",
       balance_before,
-      "- balance after: ",
+      "- ENOUGH FUNDS balance after: ",
       balance_after
     );
     assert.ok(balance_before > balance_after);
