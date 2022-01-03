@@ -65,18 +65,18 @@ pub mod auction {
         auction.y_intercept = y_intercept;
 
         // minting 100 tokens to be owned by the account authority
-        // anchor_spl::token::mint_to(
-        //     CpiContext::new_with_signer(
-        //         ctx.accounts.token_program.to_account_info(),
-        //         anchor_spl::token::MintTo {
-        //             mint: ctx.accounts.mint.to_account_info(),
-        //             to: ctx.accounts.token_destination.to_account_info(),
-        //             authority: ctx.accounts.mint.to_account_info(),
-        //         },
-        //         &[&[&[], &[mint_bump]]],
-        //     ),
-        //     100,
-        // )?;
+        anchor_spl::token::mint_to(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                anchor_spl::token::MintTo {
+                    mint: ctx.accounts.mint.to_account_info(),
+                    to: ctx.accounts.destination.to_account_info(),
+                    authority: ctx.accounts.mint.to_account_info(),
+                },
+                &[&[&[], &[mint_bump]]],
+            ),
+            100,
+        )?;
 
         Ok(())
     }
@@ -88,6 +88,7 @@ pub mod auction {
         let auction = &mut ctx.accounts.auction;
         let authority = &mut ctx.accounts.authority;
         let purchaser = &mut ctx.accounts.purchaser;
+        let mint = &mut ctx.accounts.mint;
 
         if auction.is_ended {
             msg!("auction is ended");
@@ -159,24 +160,28 @@ pub mod auction {
 pub struct Initialize<'info> {
     #[account(init, payer = authority, space = 64 + 64)]
     pub auction: Account<'info, Auction>,
+
     #[account(mut)]
     pub authority: Signer<'info>,
+
     pub system_program: Program<'info, System>,
+
     #[account(
         init,
         payer = authority,
-        seeds = [b"mint".as_ref()],
+        seeds = [],
         bump = mint_bump,
         mint::decimals = 0,
-        mint::authority = authority,
+        mint::authority = mint,
     )]
     pub mint: Account<'info, Mint>,
+
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,
     //token things
-    // #[account(init_if_needed, payer = authority, associated_token::mint = mint, associated_token::authority = authority)]
-    // pub token_destination: Account<'info, TokenAccount>,
-    // pub associated_token_program: Program<'info, AssociatedToken>,
+    #[account(init_if_needed, payer = authority, associated_token::mint = mint, associated_token::authority = authority)]
+    pub destination: Account<'info, TokenAccount>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 #[derive(Accounts)]
 pub struct Claim<'info> {

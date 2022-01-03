@@ -8,7 +8,7 @@ import * as spl from "@solana/spl-token";
 describe("auction", () => {
   const provider = anchor.Provider.env();
   anchor.setProvider(provider);
-  const providerWallet = provider.wallet;
+  // const providerWallet = provider.wallet;
   const program = anchor.workspace.Auction as Program<Auction>;
   const auction = anchor.web3.Keypair.generate();
   const owner = anchor.web3.Keypair.generate();
@@ -47,7 +47,7 @@ describe("auction", () => {
 
   it("It initializes the account and creates an auction!", async () => {
     const [mint, mintBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("mint")],
+      [],
       program.programId
     );
 
@@ -55,7 +55,8 @@ describe("auction", () => {
       spl.ASSOCIATED_TOKEN_PROGRAM_ID,
       spl.TOKEN_PROGRAM_ID,
       mint,
-      program.provider.wallet.publicKey
+      owner.publicKey
+      // program.provider.wallet.publicKey
     );
 
     // Dec 12th, 2021
@@ -92,8 +93,8 @@ describe("auction", () => {
           mint: mint,
           tokenProgram: spl.TOKEN_PROGRAM_ID,
           // token things
-          // tokenDestination: ourAssociatedTokens,
-          // associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
+          destination: ourAssociatedTokens,
+          associatedTokenProgram: spl.ASSOCIATED_TOKEN_PROGRAM_ID,
         },
         signers: [owner, auction],
       }
@@ -117,7 +118,7 @@ describe("auction", () => {
 
   it("An account without enough funds cannot purchase the item", async () => {
     const [mint, mintBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("mint")],
+      [],
       program.programId
     );
 
@@ -162,7 +163,7 @@ describe("auction", () => {
 
   it("The price can be paid, ending the auction", async () => {
     const [mint, mintBump] = await anchor.web3.PublicKey.findProgramAddress(
-      [Buffer.from("mint")],
+      [],
       program.programId
     );
     const account_before = await program.account.auction.fetch(
